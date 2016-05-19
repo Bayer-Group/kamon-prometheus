@@ -41,6 +41,8 @@ class SnapshotConverter(settings: PrometheusSettings) {
   /** Transforms metric families post-conversion. */
   val postprocess: Postprocessor = new DefaultPostprocessor
 
+  var subscribers: Seq[MetricSubscriber] = Seq.empty
+
   /** Converts a metric snapshot into a sequence of metric families. */
   def apply(tick: TickMetricSnapshot): Seq[MetricFamily] = {
     type Category = String
@@ -56,7 +58,7 @@ class SnapshotConverter(settings: PrometheusSettings) {
     }
     val byCategoryData = data.groupBy(_.category)
 
-    byCategoryData.flatMap { case (category, categoryData) ⇒
+    val metrics = byCategoryData.flatMap { case (category, categoryData) ⇒
       category match {
           case SingleInstrumentEntityRecorder.Counter ⇒
             categoryData.groupBy(_.name).map { case (_, snapshots) ⇒ makeCounterMetricFamily(snapshots, tick.to) }
@@ -70,6 +72,14 @@ class SnapshotConverter(settings: PrometheusSettings) {
             makeArbitraryMetricFamilies(categoryData, tick.to)
       }
     }.map(postprocess(_)).toList
+
+    subscribers.foreach(s => s.setMetrics(metrics))
+
+    metrics
+  }
+
+  def registerSubscriber(subscriber: MetricSubscriber) = {
+    subscribers = subscribers :+ subscriber
   }
 
   /** Builds a metric family corresponding to a counter. */

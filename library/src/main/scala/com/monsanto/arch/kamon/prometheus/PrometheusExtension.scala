@@ -2,6 +2,7 @@ package com.monsanto.arch.kamon.prometheus
 
 import akka.actor.ExtendedActorSystem
 import akka.event.Logging
+import com.monsanto.arch.kamon.prometheus.converter.SnapshotConverter
 import kamon.Kamon
 import kamon.metric.TickMetricSnapshotBuffer
 import spray.routing.Route
@@ -11,7 +12,6 @@ import spray.routing.Route
   * TODO: add real documentation
   *
   * @param system the Actor system to which this class acts as an extension
-  *
   * @author Daniel Solano Gómez
   */
 class PrometheusExtension(system: ExtendedActorSystem) extends Kamon.Extension {
@@ -28,9 +28,12 @@ class PrometheusExtension(system: ExtendedActorSystem) extends Kamon.Extension {
   val isBuffered: Boolean = settings.refreshInterval > Kamon.metrics.settings.tickInterval
 
   /** Manages the Spray endpoint. */
-  private val endpoint = new PrometheusEndpoint(settings)(system)
+  private val endpoint = new PrometheusEndpoint()(system)
+  /** Converts snapshots from Kamon’s native type to the one used by this extension. */
+  private val snapshotConverter = new SnapshotConverter(settings)
+
   /** Listens to and records metrics. */
-  private[prometheus] val listener = system.actorOf(PrometheusListener.props(endpoint), "prometheus-listener")
+  private[prometheus] val listener = system.actorOf(PrometheusListener.props(Seq(endpoint), snapshotConverter), "prometheus-listener")
   /** If the listener needs to listen less frequently than ticks, set up a buffer. */
   private[prometheus] val buffer = {
     if (isBuffered) {
