@@ -151,6 +151,7 @@ There are currently three principal ways to use _kamon-prometheus_:
 1. Using the Spray endpoint
 2. Using the Akka HTTP endpoint
 3. Collecting metrics via an Actor
+4. Creating a PlayFramework endpoint
 
 Once you have made the metrics available, you will need to configure
 Prometheus to scrape your application.
@@ -218,6 +219,37 @@ object Main extends App {
 
 For this functionality, please consult the documentation for
 http://monsantoco.github.io/kamon-prometheus/api/0.2.0/#com.monsanto.arch.kamon.prometheus.PrometheusExtension[PrometheusExtension].
+
+=== Creating a PlayFramework endpoint 
+Based on the actor snapshot functionality, you can create a simple Play Controller, and put it under `/metrics`.
+
+[source,scala]
+.Play Framework Controller
+------------------------------------------------------------------------------
+import akka.pattern.ask
+import com.monsanto.arch.kamon.prometheus.Prometheus
+import com.monsanto.arch.kamon.prometheus.PrometheusExtension._
+import com.monsanto.arch.kamon.prometheus.metric.TextFormat
+import scala.concurrent.duration._
+
+class MetricsController extends Controller {
+
+  final val ContentType004 = "text/plain; version=0.0.4; charset=utf-8"
+
+  def prometheusMetrics =
+    Action.async {
+      Prometheus.kamonInstance.flatMap { extension =>
+        extension.ref.ask(GetCurrentSnapshot)(1 second).map {
+          case NoCurrentSnapshot =>
+            NoContent
+          case Snapshot(s) =>
+            Ok(TextFormat.format(s)).withHeaders(CONTENT_TYPE -> ContentType004)
+        }
+      }
+    }    
+}
+------------------------------------------------------------------------------
+
 
 === Consuming the metrics
 
