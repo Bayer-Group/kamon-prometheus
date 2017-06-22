@@ -3,7 +3,7 @@ package com.monsanto.arch.kamon.prometheus
 import com.typesafe.config.{Config, ConfigFactory}
 import kamon.util.ConfigTools.Syntax
 
-import scala.collection.JavaConversions
+import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
 
 /** A settings object used for configuring how the extension should behave.
@@ -22,11 +22,10 @@ class PrometheusSettings(config: Config) {
 
   /** The subscriptions that determine which metrics the extension will publish to Prometheus. */
   val subscriptions: Map[String, List[String]] = {
-    import JavaConversions.asScalaBuffer
 
     val subs: Config = prometheusConfig.getConfig("subscriptions")
     subs.firstLevelKeys.map { category ⇒
-      category → subs.getStringList(category).toList
+      category → subs.getStringList(category).asScala.toList
     }.toMap
   }
 
