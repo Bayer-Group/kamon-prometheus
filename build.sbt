@@ -110,18 +110,17 @@ lazy val demo = (project in file("demo"))
   .enablePlugins(DockerPlugin)
   .settings(
     commonSettings,
+    crossScalaVersions := Seq("2.11.8"),
     aspectjSettings,
     noPublishing,
     name := "kamon-prometheus-demo",
     description := "Docker image containing a demonstration of kamon-prometheus in action.",
-    libraryDependencies += "io.kamon" %% "kamon-system-metrics" % kamonVersion,
-    libraryDependencies ++= {
-      if (scalaBinaryVersion.value == "2.11") Seq(
-        "io.kamon" %% "kamon-spray" % kamonVersion,
-        "io.spray" %% "spray-can" % sprayVersion,
-        "com.monsanto.arch" %% "spray-kamon-metrics" % "0.1.3"
-      ) else Seq.empty
-    },
+    libraryDependencies ++= Seq(
+      "io.kamon"          %% "kamon-system-metrics" % kamonVersion,
+      "io.kamon"          %% "kamon-spray"          % kamonVersion,
+      "io.spray"          %% "spray-can"            % sprayVersion,
+      "com.monsanto.arch" %% "spray-kamon-metrics"  % "0.1.3"
+    ),
     fork in run := true,
     javaOptions in run ++= { (AspectjKeys.weaverOptions in Aspectj).value },
     javaOptions in reStart ++= { (AspectjKeys.weaverOptions in Aspectj).value },
@@ -198,6 +197,7 @@ lazy val ghPagesSettings =
   )
 
 lazy val `kamon-prometheus` = (project in file("."))
+  .enablePlugins(CrossPerProjectPlugin)
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .aggregate(library, demo)
   .settings(
